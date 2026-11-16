@@ -3,6 +3,7 @@ package driver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -32,6 +33,20 @@ const (
 
 	// MetadataKeyProgramName is the metadata key used to identify programs.
 	MetadataKeyProgramName = "bpfman.io/ProgramName"
+
+	// VolumeAttrProgramsByMetadata selects a family of programs by a
+	// metadata key=value pair instead of a single program by name. Every
+	// matching program's requested maps are exposed in the volume, each
+	// under the subdirectory named by the VolumeAttrSubpathMetadata
+	// metadata key. This serves workloads whose program is chosen
+	// dynamically (e.g. one XDP program per netdev, allocated to the pod
+	// by a device plugin) and therefore cannot be named in the pod spec.
+	VolumeAttrProgramsByMetadata = "csi.bpfman.io/programs-by-metadata"
+
+	// VolumeAttrSubpathMetadata is the metadata key whose value names the
+	// per-program subdirectory inside the volume when using
+	// VolumeAttrProgramsByMetadata. Required together with it.
+	VolumeAttrSubpathMetadata = "csi.bpfman.io/subpath-metadata"
 )
 
 // NodeGetInfo returns information about this node.
@@ -105,10 +120,26 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	}
 
 	programName := volumeContext[VolumeAttrProgram]
+	selector := volumeContext[VolumeAttrProgramsByMetadata]
+	subpathKey := volumeContext[VolumeAttrSubpathMetadata]
 	requestedMaps := parseMapNames(volumeContext[VolumeAttrMaps])
 
-	if programName == "" || len(requestedMaps) == 0 {
+	selectorKey, selectorValue, err := parseMetadataSelector(selector)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(requestedMaps) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "csi.bpfman.io/program and at least one csi.bpfman.io/maps are required")
+	}
+	if programName == "" && selector == "" {
+		return nil, status.Error(codes.InvalidArgument, "csi.bpfman.io/program or csi.bpfman.io/programs-by-metadata is required")
+	}
+	if programName != "" && selector != "" {
+		return nil, status.Error(codes.InvalidArgument, "csi.bpfman.io/program and csi.bpfman.io/programs-by-metadata are mutually exclusive")
+	}
+	if selector != "" && subpathKey == "" {
+		return nil, status.Error(codes.InvalidArgument, "csi.bpfman.io/subpath-metadata is required with csi.bpfman.io/programs-by-metadata")
 	}
 	if err := validateMapNames(requestedMaps); err != nil {
 		return nil, err
@@ -165,8 +196,70 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		// it; that is not safe and is not our volume to reclaim.
 		return nil, status.Errorf(codes.FailedPrecondition, "target path %q is already mounted with filesystem %q", targetPath, fsType)
 	}
+
+	// mapSources are the programs whose maps are exposed in this volume:
+	// one for the single-program mode, one per matched program for the
+	// metadata-selector mode. Subpath is the per-program subdirectory the
+	// maps are re-pinned under (empty for the single-program mode).
+	type mapSource struct {
+		name    string
+		mapsDir string
+		subpath string
+	}
+	var sources []mapSource
+
+	// The selector mode resolves its programs before the idempotency check
+	// because the expected top-level entries (the per-program subpaths) are
+	// only known after matching.
+	if selector != "" {
+		if d.programFinder == nil {
+			return nil, status.Error(codes.FailedPrecondition, "bpfman integration not configured; programFinder and kernel required")
+		}
+		records, err := d.programFinder.FindLoadedProgramsByMetadata(ctx, selectorKey, selectorValue)
+		if err != nil {
+			d.logger.Error("failed to find programs", "selector", selector, "error", err)
+			return nil, status.Errorf(codes.Internal, "failed to find programs for %q: %v", selector, err)
+		}
+		if len(records) == 0 {
+			// Match the single-program mode: no match yet is a retryable
+			// NotFound, e.g. while the programs are still being loaded.
+			d.logger.Warn("no programs matched yet", "selector", selector)
+			return nil, status.Errorf(codes.NotFound, "no programs found for %q", selector)
+		}
+		seenSubpaths := make(map[string]struct{}, len(records))
+		for _, record := range records {
+			subpath := record.Meta.Metadata[subpathKey]
+			if subpath == "" {
+				return nil, status.Errorf(codes.InvalidArgument, "program %d does not set the %q metadata required for the volume subpath", record.ProgramID, subpathKey)
+			}
+			if err := checkPathElement("subpath", subpath); err != nil {
+				return nil, err
+			}
+			if _, dup := seenSubpaths[subpath]; dup {
+				return nil, status.Errorf(codes.InvalidArgument, "multiple programs share the subpath %q", subpath)
+			}
+			seenSubpaths[subpath] = struct{}{}
+			mapsDir := record.Handles.MapsDir.String()
+			if mapsDir == "" {
+				return nil, status.Errorf(codes.Internal, "program %d has no map pin path", record.ProgramID)
+			}
+			sources = append(sources, mapSource{name: fmt.Sprintf("%s=%s/%d", selectorKey, selectorValue, record.ProgramID), mapsDir: mapsDir, subpath: subpath})
+		}
+	}
+
+	// The set of top-level entries a fresh publish would create: the map
+	// names in single-program mode, the per-program subpaths in selector
+	// mode.
+	expectedTopLevel := requestedMaps
+	if selector != "" {
+		expectedTopLevel = make([]string, 0, len(sources))
+		for _, source := range sources {
+			expectedTopLevel = append(expectedTopLevel, source.subpath)
+		}
+	}
+
 	if mounted {
-		same, err := publishMatches(targetPath, requestedMaps, readonly)
+		same, err := publishMatches(targetPath, expectedTopLevel, readonly)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "compare published volume at %q: %v", targetPath, err)
 		}
@@ -182,28 +275,32 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	}
 
 	// 1. Find program by metadata (reconciled with kernel state)
-	metadata, _, err := d.programFinder.FindLoadedProgramByMetadata(ctx, MetadataKeyProgramName, programName)
-	if err != nil {
-		// Return appropriate gRPC code based on error type.
-		// NotFound is expected during reconciliation -- the CSI
-		// driver may ask before the operator has loaded the program.
-		switch {
-		case errors.Is(err, platform.ErrRecordNotFound):
-			d.logger.Warn("program not yet loaded", "programName", programName, "error", err)
-			return nil, status.Errorf(codes.NotFound, "program %q not found", programName)
-		default:
-			d.logger.Error("failed to find program", "programName", programName, "error", err)
-			return nil, status.Errorf(codes.Internal, "failed to find program %q: %v", programName, err)
+	if selector == "" {
+		metadata, _, err := d.programFinder.FindLoadedProgramByMetadata(ctx, MetadataKeyProgramName, programName)
+		if err != nil {
+			// Return appropriate gRPC code based on error type.
+			// NotFound is expected during reconciliation -- the CSI
+			// driver may ask before the operator has loaded the program.
+			switch {
+			case errors.Is(err, platform.ErrRecordNotFound):
+				d.logger.Warn("program not yet loaded", "programName", programName, "error", err)
+				return nil, status.Errorf(codes.NotFound, "program %q not found", programName)
+			default:
+				d.logger.Error("failed to find program", "programName", programName, "error", err)
+				return nil, status.Errorf(codes.Internal, "failed to find program %q: %v", programName, err)
+			}
 		}
-	}
 
-	// 2. Get the maps directory from the program (may differ from PinPath if sharing maps)
-	mapPinPath := metadata.Handles.MapsDir.String()
-	if mapPinPath == "" {
-		return nil, status.Errorf(codes.Internal, "program %q has no map pin path", programName)
-	}
+		// 2. Get the maps directory from the program (may differ from PinPath if sharing maps)
+		mapPinPath := metadata.Handles.MapsDir.String()
+		if mapPinPath == "" {
+			return nil, status.Errorf(codes.Internal, "program %q has no map pin path", programName)
+		}
 
-	d.logger.Info("found program", "programName", programName, "mapPinPath", mapPinPath)
+		d.logger.Info("found program", "programName", programName, "mapPinPath", mapPinPath)
+
+		sources = append(sources, mapSource{name: programName, mapsDir: mapPinPath})
+	}
 
 	podBpffs := filepath.Join(d.csiFsRoot, volumeID)
 
@@ -252,39 +349,55 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		}
 	}
 
-	// 5. Re-pin each requested map into the per-pod bpffs.
-	for _, mapName := range requestedMaps {
-		srcPath := filepath.Join(mapPinPath, mapName)
-		dstPath := filepath.Join(podBpffs, mapName)
-
-		// A map the caller named but the program does not pin is a caller
-		// error, not an internal fault: report NotFound so the pod event
-		// names the bad map rather than implying a driver bug. A found
-		// program has its maps pinned, so a missing source is terminal, not
-		// a transient the caller should expect to clear.
-		if _, err := os.Stat(srcPath); err != nil {
-			if os.IsNotExist(err) {
-				return nil, status.Errorf(codes.NotFound, "map %q is not published by program %q", mapName, programName)
+	// 5. Re-pin each requested map from each source program into the per-pod
+	// bpffs, under the program's subpath when in selector mode.
+	for _, source := range sources {
+		mapDstDir := podBpffs
+		if source.subpath != "" {
+			mapDstDir = filepath.Join(podBpffs, source.subpath)
+			if err := os.MkdirAll(mapDstDir, 0o750); err != nil {
+				return nil, status.Errorf(codes.Internal, "failed to create subpath dir %q: %v", mapDstDir, err)
 			}
-			return nil, status.Errorf(codes.Internal, "stat map pin %q: %v", srcPath, err)
+			if fsGroup >= 0 {
+				if err := unix.Chown(mapDstDir, -1, fsGroup); err != nil {
+					return nil, status.Errorf(codes.Internal, "set group ownership on %q: %v", mapDstDir, err)
+				}
+			}
 		}
 
-		d.logger.Debug("re-pinning map", "map", mapName, "src", srcPath, "dst", dstPath)
+		for _, mapName := range requestedMaps {
+			srcPath := filepath.Join(source.mapsDir, mapName)
+			dstPath := filepath.Join(mapDstDir, mapName)
 
-		if err := d.kernel.RepinMap(ctx, srcPath, dstPath); err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to re-pin map %q: %v", mapName, err)
-		}
-
-		// Set group ownership and mode so an unprivileged container in the
-		// fsGroup can access the map. As with the directory above, a failure
-		// here leaves the pod unable to use the map it asked for, so it is
-		// fatal rather than a warning.
-		if fsGroup >= 0 {
-			if err := unix.Chown(dstPath, -1, fsGroup); err != nil {
-				return nil, status.Errorf(codes.Internal, "set group ownership on map %q: %v", dstPath, err)
+			// A map the caller named but the program does not pin is a caller
+			// error, not an internal fault: report NotFound so the pod event
+			// names the bad map rather than implying a driver bug. A found
+			// program has its maps pinned, so a missing source is terminal, not
+			// a transient the caller should expect to clear.
+			if _, err := os.Stat(srcPath); err != nil {
+				if os.IsNotExist(err) {
+					return nil, status.Errorf(codes.NotFound, "map %q is not published by program %q", mapName, source.name)
+				}
+				return nil, status.Errorf(codes.Internal, "stat map pin %q: %v", srcPath, err)
 			}
-			if err := os.Chmod(dstPath, mapsMode); err != nil {
-				return nil, status.Errorf(codes.Internal, "set mode on map %q: %v", dstPath, err)
+
+			d.logger.Debug("re-pinning map", "map", mapName, "src", srcPath, "dst", dstPath)
+
+			if err := d.kernel.RepinMap(ctx, srcPath, dstPath); err != nil {
+				return nil, status.Errorf(codes.Internal, "failed to re-pin map %q: %v", mapName, err)
+			}
+
+			// Set group ownership and mode so an unprivileged container in the
+			// fsGroup can access the map. As with the directory above, a failure
+			// here leaves the pod unable to use the map it asked for, so it is
+			// fatal rather than a warning.
+			if fsGroup >= 0 {
+				if err := unix.Chown(dstPath, -1, fsGroup); err != nil {
+					return nil, status.Errorf(codes.Internal, "set group ownership on map %q: %v", dstPath, err)
+				}
+				if err := os.Chmod(dstPath, mapsMode); err != nil {
+					return nil, status.Errorf(codes.Internal, "set mode on map %q: %v", dstPath, err)
+				}
 			}
 		}
 	}
@@ -307,16 +420,32 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 
 	committed = true
 
-	d.logger.Info("NodePublishVolume succeeded", "method", "Node.NodePublishVolume", "volumeID", volumeID, "programName", programName, "maps", requestedMaps, "podBpffs", podBpffs, "targetPath", targetPath, "readonly", readonly, "fsGroup", fsGroup)
+	d.logger.Info("NodePublishVolume succeeded", "method", "Node.NodePublishVolume", "volumeID", volumeID, "programName", programName, "selector", selector, "maps", requestedMaps, "podBpffs", podBpffs, "targetPath", targetPath, "readonly", readonly, "fsGroup", fsGroup)
 
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
+// parseMetadataSelector parses a "key=value" metadata selector. An empty
+// selector is valid (the single-program mode is used instead) and returns
+// empty strings.
+func parseMetadataSelector(s string) (string, string, error) {
+	if s == "" {
+		return "", "", nil
+	}
+	key, value, ok := strings.Cut(s, "=")
+	if !ok || key == "" || value == "" {
+		return "", "", status.Errorf(codes.InvalidArgument, "invalid %s %q: must be of the form key=value", VolumeAttrProgramsByMetadata, s)
+	}
+	return key, value, nil
+}
+
 // publishMatches reports whether the volume already published at
-// targetPath matches the requested maps and read-only flag. It compares
-// observable state -- the map pins at the target and the mount's
-// read-only flag -- so it does not depend on remembering the original
-// request and survives a driver restart.
+// targetPath matches the expected top-level entries and read-only flag.
+// In single-program mode the entries are the map pins; in selector mode
+// they are the per-program subpaths. It compares observable state -- the
+// entries at the target and the mount's read-only flag -- so it does not
+// depend on remembering the original request and survives a driver
+// restart.
 func publishMatches(targetPath string, requestedMaps []string, readonly bool) (bool, error) {
 	var st unix.Statfs_t
 	if err := unix.Statfs(targetPath, &st); err != nil {
