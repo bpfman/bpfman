@@ -1,0 +1,52 @@
+# -*- mode: bpfman -*-
+#
+# Given: a frags program attached natively to a jumbo-MTU interface
+#
+# When: a non-frags program is attached to the same interface
+#
+# Then: the rebuild would downgrade the dispatcher to non-frags, which
+# cannot attach natively to the jumbo interface, so the attach is
+# rejected with ERANGE and the original frags dispatcher survives
+# unchanged -- the rebuild is atomic.
+
+guard veth <- net netns-veth-pair
+defer net release $veth
+
+let netns = "/var/run/netns/${veth.a.ns}"
+
+# Raise both ends to a jumbo MTU that native XDP cannot take without
+# frags support.
+guard _ <- net exec $veth.a ip link set dev $veth.a.link mtu 8901
+guard _ <- net exec $veth.b ip link set dev $veth.b.link mtu 8901
+
+guard fragsLoaded <- bpfman program load file testdata/bpf/xdp_frags_pass.bpf.o --programs xdp:frags_pass
+let fragsProg = $fragsLoaded.programs[0]
+let fragsPid = $fragsProg.record.program_id
+assert $fragsProg.record.has_xdp_frags
+defer bpfman program unload $fragsPid
+guard fragsLink <- bpfman link attach xdp $fragsProg $veth.a.link --priority 50 --netns $netns
+defer bpfman link detach $fragsLink
+
+guard disp1 <- bpfman dispatcher get xdp $veth.a.nsid $veth.a.ifindex
+assert $disp1.is_xdp_frags
+
+# A non-frags program cannot join a frags dispatcher on a jumbo
+# interface: the downgraded dispatcher fails its native attach. Assert
+# the failure is specifically ERANGE, not merely that it failed -- a
+# failure for any other reason would pass a bare not-ok check.
+guard plainLoaded <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass
+let plainProg = $plainLoaded.programs[0]
+let plainPid = $plainProg.record.program_id
+assert not $plainProg.record.has_xdp_frags
+defer bpfman program unload $plainPid
+let rejected <- bpfman link attach xdp $plainProg $veth.a.link --priority 60 --netns $netns
+assert not $rejected.ok
+assert contains $rejected.stderr "numerical result out of range"
+
+# The original frags dispatcher survives the failed rebuild: still
+# frags-aware, still holding only the frags program.
+guard disp2 <- bpfman dispatcher get xdp $veth.a.nsid $veth.a.ifindex
+assert $disp2.is_xdp_frags
+let members = $disp2 |> jq ".members | length"
+assert $members == 1
+assert $disp2.members[0].program_name == "frags_pass"

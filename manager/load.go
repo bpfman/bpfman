@@ -79,6 +79,7 @@ func buildProgramRecord(
 			WithAttachFunc(spec.AttachFunc()),
 		License:       loaded.License,
 		GPLCompatible: bpfman.IsGPLCompatible(loaded.License),
+		HasXDPFrags:   loaded.HasXDPFrags,
 		Handles: bpfman.ProgramHandles{
 			PinPath:    loaded.PinPath,
 			MapsDir:    loaded.MapsDir,

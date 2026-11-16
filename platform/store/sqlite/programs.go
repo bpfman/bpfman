@@ -47,6 +47,7 @@ type scannedProgram struct {
 	license, metadataJSON                            sql.NullString
 	mapSetID                                         sql.NullInt64
 	gplCompatible                                    int
+	hasXDPFrags                                      int
 	createdAtStr                                     string
 	updatedAtStr                                     sql.NullString
 }
@@ -141,6 +142,7 @@ func buildProgramRecord(sp *scannedProgram) (bpfman.ProgramRecord, error) {
 			WithAttachFunc(attachFuncVal),
 		License:       licenseVal,
 		GPLCompatible: sp.gplCompatible != 0,
+		HasXDPFrags:   sp.hasXDPFrags != 0,
 		Handles: bpfman.ProgramHandles{
 			PinPath:    bpfman.ProgPinPath(sp.pinPath),
 			MapsDir:    bpfman.MapDir(mapPinPathVal),
@@ -181,6 +183,7 @@ func (s *sqliteStore) scanProgram(row *sql.Row, programID kernel.ProgramID) (bpf
 		&sp.description,
 		&sp.license,
 		&sp.gplCompatible,
+		&sp.hasXDPFrags,
 		&sp.createdAtStr,
 		&sp.updatedAtStr,
 		&sp.metadataJSON,
@@ -297,6 +300,10 @@ func (s *sqliteStore) Save(ctx context.Context, programID kernel.ProgramID, meta
 	if metadata.GPLCompatible {
 		gplCompatibleInt = 1
 	}
+	var hasXDPFragsInt int
+	if metadata.HasXDPFrags {
+		hasXDPFragsInt = 1
+	}
 
 	start := time.Now()
 	result, err := s.stmtSaveProgram.ExecContext(ctx,
@@ -314,6 +321,7 @@ func (s *sqliteStore) Save(ctx context.Context, programID kernel.ProgramID, meta
 		description,
 		license,
 		gplCompatibleInt,
+		hasXDPFragsInt,
 		metadataJSON,
 		metadata.CreatedAt.UTC().Format(time.RFC3339),
 		updatedAtNullable,
@@ -541,6 +549,7 @@ func (s *sqliteStore) scanProgramFromRows(rows *sql.Rows) (kernel.ProgramID, bpf
 		&sp.description,
 		&sp.license,
 		&sp.gplCompatible,
+		&sp.hasXDPFrags,
 		&sp.createdAtStr,
 		&sp.updatedAtStr,
 		&sp.metadataJSON,
