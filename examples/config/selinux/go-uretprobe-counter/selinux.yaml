@@ -1,8 +1,7 @@
 apiVersion: security-profiles-operator.x-k8s.io/v1alpha2
 kind: SelinuxProfile
 metadata:
-  name: bpfman-secure
-  namespace: go-uretprobe-counter
+  name: bpfman-secure-go-uretprobe-counter
 spec:
   allow:
     '@self':
