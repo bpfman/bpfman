@@ -248,6 +248,34 @@ spec:
             csi.bpfman.io/maps: xdp_stats_map               <==== 1c) Map to be exposed to the container
 ```
 
+#### Selecting Programs by Metadata
+
+When the program that owns the map is not known when the pod spec is written --
+for example, one XDP program per network interface where the interface is
+allocated to the pod at scheduling time by a device plugin -- the volume can
+instead select a family of programs by metadata:
+
+```yaml
+      volumes:
+      - name: afxdp-maps
+        csi:
+          driver: csi.bpfman.io
+          volumeAttributes:
+            csi.bpfman.io/programs-by-metadata: afxdp.io/pool=myPool   <==== 1b) metadata selector (key=value)
+            csi.bpfman.io/subpath-metadata: afxdp.io/device            <==== 1c) metadata key naming a per-program subdirectory
+            csi.bpfman.io/maps: xsks_map                               <==== 1d) Maps to be exposed from each program
+```
+
+Every loaded program whose `afxdp.io/pool` metadata equals `myPool` contributes
+its requested maps, re-pinned under a subdirectory named by the program's
+`afxdp.io/device` metadata (e.g. `/run/xdp/maps/ens801f0/xsks_map`). The
+workload determines which subdirectory is its own at runtime (for the
+[AF_XDP device plugin](https://github.com/redhat-et/afxdp-plugins-for-kubernetes),
+from the `AFXDP_DEVICES_<pool>` environment variable). `csi.bpfman.io/program`
+and `csi.bpfman.io/programs-by-metadata` are mutually exclusive; a selector
+that matches no program yet returns a retryable NotFound, matching the
+single-program behavior while programs are still loading.
+
 ### Loading A Userspace Container Image
 
 The userspace programs have been pre-built and can be found here:
